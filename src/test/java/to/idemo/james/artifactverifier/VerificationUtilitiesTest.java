@@ -2,17 +2,13 @@ package to.idemo.james.artifactverifier;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.bouncycastle.asn1.*;
-import org.bouncycastle.asn1.x509.GeneralName;
-import org.bouncycastle.jcajce.provider.asymmetric.X509;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
 import to.idemo.james.artifactverifier.domain.Rekord;
 import to.idemo.james.artifactverifier.domain.RekordBody;
 
-import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.security.cert.Certificate;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.*;
