@@ -42,26 +42,12 @@ class VerificationUtilitiesTest {
         //First up: the easy one.  Getting a SAN should be easy
         Collection<List<?>> subjectAlternativeNames = x509Certificate.getSubjectAlternativeNames();
         assertNotNull(subjectAlternativeNames);
-        for (List<?> subjectAlternativeName : subjectAlternativeNames) {
-            Object type = subjectAlternativeName.get(0);
-            assertEquals(1, type); //rfc822Name according to https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/security/cert/X509Certificate.html#getSubjectAlternativeNames()
-            Object name = subjectAlternativeName.get(1);
-            assertEquals("james.idemoto@gmail.com", name);
-        }
+        assertEquals("research@idemo.to", VerificationUtilities.extractSan(x509Certificate));
 
         //Next up: getting the OIDC provider that authenticated the user.  A little harder because we have to pull from another extension
         Set<String> criticalExtensionOIDs = x509Certificate.getNonCriticalExtensionOIDs();
         assertTrue(criticalExtensionOIDs.contains("1.3.6.1.4.1.57264.1.1"));
-        byte[] extensionValue = x509Certificate.getExtensionValue("1.3.6.1.4.1.57264.1.1");
-        try (ASN1InputStream asn1InputStream = new ASN1InputStream(extensionValue)) {
-            ASN1Primitive oidcPrimative = asn1InputStream.readObject();
-            // Docs say this will be a DER-encoded octet stream: https://docs.oracle.com/en/java/javase/12/docs/api/java.base/java/security/cert/X509Extension.html#getExtensionValue(java.lang.String)
-            if (oidcPrimative instanceof DEROctetString) {
-                assertEquals("https://github.com/login/oauth", new String(((DEROctetString) oidcPrimative).getOctets()));
-            } else {
-                fail("Expected a DER Octet String from extension");
-            }
-        }
+        assertEquals("https://accounts.google.com", VerificationUtilities.extractOidcProvider(x509Certificate));
     }
 
     private static X509Certificate getTestCertificate() throws IOException, CertificateException {

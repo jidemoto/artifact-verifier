@@ -1,5 +1,8 @@
 package to.idemo.james.artifactverifier;
 
+import org.bouncycastle.asn1.ASN1InputStream;
+import org.bouncycastle.asn1.ASN1Primitive;
+import org.bouncycastle.asn1.DEROctetString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
@@ -14,6 +17,8 @@ import java.security.NoSuchProviderException;
 import java.security.SignatureException;
 import java.security.cert.*;
 import java.util.Base64;
+import java.util.Collection;
+import java.util.List;
 
 public class VerificationUtilities {
     private static final Logger logger = LoggerFactory.getLogger(VerificationUtilities.class);
@@ -28,6 +33,34 @@ public class VerificationUtilities {
 
     public static X509Certificate getX509Certificate(InputStream inputStream) throws CertificateException {
         return (X509Certificate) CertificateFactory.getInstance("X.509").generateCertificate(inputStream);
+    }
+
+    public static String extractOidcProvider(X509Certificate x509Certificate) {
+        byte[] extensionValue = x509Certificate.getExtensionValue("1.3.6.1.4.1.57264.1.1");
+        try (ASN1InputStream asn1InputStream = new ASN1InputStream(extensionValue)) {
+            ASN1Primitive oidcPrimative = asn1InputStream.readObject();
+            // Docs say this will be a DER-encoded octet stream: https://docs.oracle.com/en/java/javase/12/docs/api/java.base/java/security/cert/X509Extension.html#getExtensionValue(java.lang.String)
+            if (oidcPrimative instanceof DEROctetString) {
+                return new String(((DEROctetString) oidcPrimative).getOctets());
+            } else {
+                throw new IllegalStateException("Spec says that a DER-encoded octet string should be present, but found something else");
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static String extractSan(X509Certificate x509Certificate) {
+        Collection<List<?>> subjectAlternativeNames;
+        try {
+            subjectAlternativeNames = x509Certificate.getSubjectAlternativeNames();
+        } catch (CertificateParsingException e) {
+            throw new RuntimeException(e);
+        }
+        List<?> firstSan = subjectAlternativeNames.iterator().next();
+        // Skipping entry 0 because it contains the type.  These should always be strings here for rekor
+        Object name = firstSan.get(1);
+        return (String) name;
     }
 
     public static void verifySigningCertificate(String base64EncodedCertificate) {
