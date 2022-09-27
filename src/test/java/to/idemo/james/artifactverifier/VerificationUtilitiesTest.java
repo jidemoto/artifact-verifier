@@ -88,7 +88,6 @@ class VerificationUtilitiesTest {
         RekordBody rekordBody = record.getBody();
         String certificate = rekordBody.getSpec().getSignature().getPublicKey().getContent();
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(Base64.getDecoder().decode(certificate));
-        X509Certificate x509Certificate = VerificationUtilities.getX509Certificate(byteArrayInputStream);
-        return x509Certificate;
+        return VerificationUtilities.getX509Certificate(byteArrayInputStream);
     }
 }
