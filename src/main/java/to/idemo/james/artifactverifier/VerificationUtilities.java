@@ -11,11 +11,9 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.SignatureException;
+import java.security.*;
 import java.security.cert.*;
+import java.security.cert.Certificate;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
@@ -63,6 +61,27 @@ public class VerificationUtilities {
         return (String) name;
     }
 
+    public static void verifyArtifact(X509Certificate x509Certificate, byte[] signature, byte[] shaHash) {
+        try {
+            // When making this signature, we'd probably use SHA256withECDSA for the algorithm, but since we're going to
+            // verify the signature against the hash as it's pre-computed, we'll use the NONE version
+            String algorithm = "NONEwithECDSA";
+            Signature sign = Signature.getInstance(algorithm);
+            sign.initVerify(x509Certificate.getPublicKey());
+            sign.update(shaHash);
+            boolean verify = sign.verify(signature);
+            if (!verify) {
+                throw new SignatureException("Couldn't verify signature with provided hash and certificate");
+            }
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        } catch (SignatureException e) {
+            throw new RuntimeException(e);
+        } catch (InvalidKeyException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static void verifySigningCertificate(String base64EncodedCertificate) {
         CertPath signingCertPath;
         ClassPathResource classPathResource = new ClassPathResource("fulcio.bundle");
@@ -91,7 +110,5 @@ public class VerificationUtilities {
         } catch (NoSuchProviderException e) {
             throw new RuntimeException(e);
         }
-
-
     }
 }

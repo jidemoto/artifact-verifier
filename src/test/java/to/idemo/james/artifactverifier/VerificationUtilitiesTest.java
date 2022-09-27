@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.bouncycastle.asn1.*;
 import org.bouncycastle.asn1.x509.GeneralName;
+import org.bouncycastle.jcajce.provider.asymmetric.X509;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
 import to.idemo.james.artifactverifier.domain.Rekord;
@@ -36,7 +37,7 @@ class VerificationUtilitiesTest {
     }
 
     @Test
-    public void canExtractExtensionValues() throws Exception {
+    public void testCanExtractExtensionValues() throws Exception {
         X509Certificate x509Certificate = getTestCertificate();
 
         //First up: the easy one.  Getting a SAN should be easy
@@ -48,6 +49,34 @@ class VerificationUtilitiesTest {
         Set<String> criticalExtensionOIDs = x509Certificate.getNonCriticalExtensionOIDs();
         assertTrue(criticalExtensionOIDs.contains("1.3.6.1.4.1.57264.1.1"));
         assertEquals("https://accounts.google.com", VerificationUtilities.extractOidcProvider(x509Certificate));
+    }
+
+    @Test
+    public void testVerifySignature() throws Exception {
+        X509Certificate x509Certificate = getTestCertificate();
+
+        ClassPathResource classPathResource = new ClassPathResource("test-sigstore-entry.json");
+        Map<String, Rekord> body = MAPPER.readValue(classPathResource.getInputStream(), new TypeReference<>() {
+        });
+
+        Rekord record = body.entrySet().iterator().next().getValue();
+        String sigString = record.getBody().getSpec().getSignature().getContent();
+        String artifactHash = record.getBody().getSpec().getData().getHash().getValue();
+
+        assertEquals("c7e37479bddbe14827a95e2313fba86c493b3a69f34e40850fa0be49ee7f4164", artifactHash);
+        assertEquals("MEQCIC1KffJ0FZ2D6de4tFiEbV2FQGytuipq87woAzFRcfm3AiAl6dFBYzpWNas5DuCeRs64csh/+sxPtPg3GUCGRKmlsw==", sigString);
+        Base64.Decoder decoder = Base64.getDecoder();
+        HexFormat hexFormat = HexFormat.of();
+        VerificationUtilities.verifyArtifact(x509Certificate, decoder.decode(sigString), hexFormat.parseHex(artifactHash));
+
+        //We'll pass a bad hash to verify that we fail when the artifacts don't match
+        try {
+            VerificationUtilities.verifyArtifact(x509Certificate, decoder.decode(sigString),
+                    hexFormat.parseHex("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"));
+            fail("Should have failed check with a made up signature");
+        } catch (RuntimeException e) {
+            //pass
+        }
     }
 
     private static X509Certificate getTestCertificate() throws IOException, CertificateException {
