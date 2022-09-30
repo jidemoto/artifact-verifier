@@ -1,6 +1,7 @@
 package to.idemo.james.artifactverifier.service;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import to.idemo.james.artifactverifier.VerificationUtilities;
 import to.idemo.james.artifactverifier.domain.Rekord;
@@ -10,6 +11,13 @@ import to.idemo.james.artifactverifier.exception.EmailRuleFailureException;
 import to.idemo.james.artifactverifier.exception.ProviderRuleFailureException;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.SignatureException;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.*;
@@ -21,6 +29,11 @@ public class VerifierServiceImpl implements VerifierService {
 
     private final String requiredEmailDomain;
     private final String requiredOidcProvider;
+
+    // These will be lazily initialized when needed -- we'll want to break these out into another service so that they
+    // can be retrieved separately
+    private volatile Certificate rootCertificate;
+    private volatile Certificate intermediateCertificate;
 
     public VerifierServiceImpl(RekorService rekorService,
                                @Value("${validation.emailDomain}") String requiredEmailDomain,
@@ -44,7 +57,7 @@ public class VerifierServiceImpl implements VerifierService {
                 failures.put(uuid, e);
             }
 
-            if(validated) {
+            if (validated) {
                 return;
             }
         }
@@ -52,7 +65,9 @@ public class VerifierServiceImpl implements VerifierService {
         throw new ArtifactValidationFailureException("Failed to validate artifact with hash " + sha256Hash, failures);
     }
 
-    private void verifyArtifactAgainstEntry(String sha256Hash,  Rekord rekord) throws CertificateException, EmailRuleFailureException, ProviderRuleFailureException {
+    private void verifyArtifactAgainstEntry(String sha256Hash, Rekord rekord)
+            throws CertificateException, EmailRuleFailureException, ProviderRuleFailureException,
+            NoSuchAlgorithmException, SignatureException, InvalidKeyException, NoSuchProviderException {
         RekordSignature rekordSignature = rekord.getBody().getSpec().getSignature();
         String signature = rekordSignature.getContent();
         String certificateString = rekordSignature.getPublicKey().getContent();
@@ -60,6 +75,8 @@ public class VerifierServiceImpl implements VerifierService {
         X509Certificate x509Certificate = VerificationUtilities.getX509Certificate(byteArrayInputStream);
 
         //verify the certificate is valid for fulcio root / intermediate
+        getIntermediateCertificate().verify(getRootCertificate().getPublicKey());
+        x509Certificate.verify(getIntermediateCertificate().getPublicKey());
 
         String san = VerificationUtilities.extractSan(x509Certificate);
         if (!san.endsWith("@" + requiredEmailDomain)) {
@@ -74,5 +91,36 @@ public class VerifierServiceImpl implements VerifierService {
         Base64.Decoder decoder = Base64.getDecoder();
         HexFormat hexFormat = HexFormat.of();
         VerificationUtilities.verifyArtifact(x509Certificate, decoder.decode(signature), hexFormat.parseHex(sha256Hash));
+    }
+
+    private Certificate getRootCertificate() {
+        if (rootCertificate == null) {
+            synchronized (this) {
+                if (rootCertificate == null) {
+                    rootCertificate = loadCert("root.cert");
+                }
+            }
+        }
+        return rootCertificate;
+    }
+
+    private Certificate getIntermediateCertificate() {
+        if (intermediateCertificate == null) {
+            synchronized (this) {
+                if (intermediateCertificate == null) {
+                    intermediateCertificate = loadCert("intermediate.cert");
+                }
+            }
+        }
+        return intermediateCertificate;
+    }
+
+    private Certificate loadCert(String classpathLocation) {
+        try (InputStream certStream = new ClassPathResource(classpathLocation).getInputStream()) {
+            rootCertificate = VerificationUtilities.getX509Certificate(certStream);
+        } catch (IOException | CertificateException e) {
+            throw new RuntimeException(e);
+        }
+        return rootCertificate;
     }
 }
