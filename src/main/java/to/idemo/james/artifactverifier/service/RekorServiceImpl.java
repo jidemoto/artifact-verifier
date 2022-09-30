@@ -2,6 +2,7 @@ package to.idemo.james.artifactverifier.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
@@ -25,16 +26,19 @@ public class RekorServiceImpl implements RekorService {
             Collections.singletonMap("ContentType", Collections.singletonList("application/json"))
     );
     private final RestTemplate restTemplate;
+    private final String rekorHostname;
 
-    public RekorServiceImpl(RestTemplate restTemplate) {
+    public RekorServiceImpl(RestTemplate restTemplate,
+                            @Value("${rekor.hostname:https://rekor.sigstore.dev}") String rekorHostname) {
         this.restTemplate = restTemplate;
+        this.rekorHostname = rekorHostname;
     }
 
     @Override
     public Collection<String> getUuids(String shaHash) {
         //Something to look at in the future: accept a pair of the hash algorithm -> hash string
         HttpEntity<Map<String, String>> entity = new HttpEntity<>(Collections.singletonMap("hash", "sha256:" + shaHash), HEADERS);
-        ResponseEntity<Collection<String>> response = restTemplate.exchange("https://rekor.sigstore.dev/api/v1/index/retrieve",
+        ResponseEntity<Collection<String>> response = restTemplate.exchange(rekorHostname + "/api/v1/index/retrieve",
                 HttpMethod.POST,
                 entity,
                 new ParameterizedTypeReference<>() {
@@ -46,7 +50,7 @@ public class RekorServiceImpl implements RekorService {
     @Override
     public Rekord getRekord(String rekorUuid) throws IllegalArgumentException {
         String encodedId = URLEncoder.encode(rekorUuid, StandardCharsets.UTF_8);
-        String url = "https://rekor.sigstore.dev/api/v1/log/entries/" + encodedId;
+        String url = rekorHostname + "/api/v1/log/entries/" + encodedId;
         logger.debug("Making a call to {}", url);
 
         ResponseEntity<Map<String, Rekord>> response = restTemplate.exchange(url,
@@ -63,10 +67,5 @@ public class RekorServiceImpl implements RekorService {
         }
 
         return response.getBody().entrySet().iterator().next().getValue();
-    }
-
-    @Override
-    public void getRekord(Rekord rekord) {
-
     }
 }

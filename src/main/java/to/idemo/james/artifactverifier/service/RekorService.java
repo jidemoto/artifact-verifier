@@ -8,6 +8,4 @@ public interface RekorService {
     Collection<String> getUuids(String shaHash);
 
     Rekord getRekord(String rekorUuid) throws IllegalArgumentException;
-
-    void getRekord(Rekord rekord);
 }
