@@ -68,4 +68,9 @@ public class RekorServiceImpl implements RekorService {
 
         return response.getBody().entrySet().iterator().next().getValue();
     }
+
+    @Override
+    public String getRekorLocation() {
+        return rekorHostname;
+    }
 }
