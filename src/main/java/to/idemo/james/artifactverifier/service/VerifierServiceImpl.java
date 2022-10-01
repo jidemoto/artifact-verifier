@@ -1,5 +1,7 @@
 package to.idemo.james.artifactverifier.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,7 @@ import java.util.*;
 
 @Service
 public class VerifierServiceImpl implements VerifierService {
+    private static final Logger logger = LoggerFactory.getLogger(VerifierServiceImpl.class);
 
     private final RekorService rekorService;
 
@@ -46,6 +49,9 @@ public class VerifierServiceImpl implements VerifierService {
     @Override
     public void verifyArtifact(String sha256Hash) throws ArtifactValidationFailureException {
         Collection<String> uuids = rekorService.getUuids(sha256Hash);
+        if (uuids.size() == 0) {
+            throw new ArtifactValidationFailureException("No rekor entries found for hash", Collections.emptyMap());
+        }
         Map<String, Exception> failures = new HashMap<>(uuids.size());
         boolean validated = false;
         for (String uuid : uuids) {
@@ -62,6 +68,11 @@ public class VerifierServiceImpl implements VerifierService {
             }
         }
 
+        if (logger.isDebugEnabled()) {
+            for (Map.Entry<String, Exception> entry : failures.entrySet()) {
+                logger.debug("Validation failures for sha {}", sha256Hash, entry.getValue());
+            }
+        }
         throw new ArtifactValidationFailureException("Failed to validate artifact with hash " + sha256Hash, failures);
     }
 
@@ -117,10 +128,9 @@ public class VerifierServiceImpl implements VerifierService {
 
     private Certificate loadCert(String classpathLocation) {
         try (InputStream certStream = new ClassPathResource(classpathLocation).getInputStream()) {
-            rootCertificate = VerificationUtilities.getX509Certificate(certStream);
+            return VerificationUtilities.getX509Certificate(certStream);
         } catch (IOException | CertificateException e) {
             throw new RuntimeException(e);
         }
-        return rootCertificate;
     }
 }
