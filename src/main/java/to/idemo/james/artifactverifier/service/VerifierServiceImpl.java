@@ -30,8 +30,8 @@ public class VerifierServiceImpl implements VerifierService {
 
     private final RekorService rekorService;
 
-    private final String requiredEmailDomain;
-    private final String requiredOidcProvider;
+    private final Set<String> requiredEmailDomain;
+    private final Set<String> requiredOidcProvider;
 
     // These will be lazily initialized when needed -- we'll want to break these out into another service so that they
     // can be retrieved separately
@@ -39,11 +39,11 @@ public class VerifierServiceImpl implements VerifierService {
     private volatile Certificate intermediateCertificate;
 
     public VerifierServiceImpl(RekorService rekorService,
-                               @Value("${validation.emailDomain}") String requiredEmailDomain,
-                               @Value("${validation.provider}") String requiredOidcProvider) {
+                               @Value("${validation.allowedEmailDomains}") Collection<String> requiredEmailDomain,
+                               @Value("${validation.allowedProviders}") Collection<String> requiredOidcProvider) {
         this.rekorService = rekorService;
-        this.requiredEmailDomain = requiredEmailDomain;
-        this.requiredOidcProvider = requiredOidcProvider;
+        this.requiredEmailDomain = new HashSet<>(requiredEmailDomain);
+        this.requiredOidcProvider = new HashSet<>(requiredOidcProvider);
     }
 
     @Override
@@ -90,13 +90,14 @@ public class VerifierServiceImpl implements VerifierService {
         x509Certificate.verify(getIntermediateCertificate().getPublicKey());
 
         String san = VerificationUtilities.extractSan(x509Certificate);
-        if (!san.endsWith("@" + requiredEmailDomain)) {
-            throw new EmailRuleFailureException();
+        String domain = san.substring(san.indexOf('@'));
+        if (!requiredEmailDomain.contains(domain)) {
+            throw new EmailRuleFailureException("Email domain " + domain + " doesn't appear on the configured allowlist");
         }
 
         String provider = VerificationUtilities.extractOidcProvider(x509Certificate);
-        if (!provider.equals(requiredOidcProvider)) {
-            throw new ProviderRuleFailureException();
+        if (!requiredOidcProvider.contains(provider)) {
+            throw new ProviderRuleFailureException("OIDC Provider " + provider + " doesn't appear on the configured allowlist");
         }
 
         Base64.Decoder decoder = Base64.getDecoder();

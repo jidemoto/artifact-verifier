@@ -1,0 +1,4 @@
+validation:
+  allowedEmailDomains: idemo.to
+  allowedProviders: https://accounts.google.com
+  internalProjects: william-rowan-hamilton
