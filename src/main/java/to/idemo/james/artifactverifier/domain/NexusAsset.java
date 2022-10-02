@@ -7,9 +7,22 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class NexusAsset {
-    private String id;
-    private String assetId;
-    private String format;
-    private String name;
+public class NexusAsset implements NexusEvent {
+    private String timestamp;
+    private String nodeId;
+    private String initiator;
+    private String repositoryName;
+    private String action;
+    private Asset asset;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    static class Asset {
+        private String id;
+        private String assetId;
+        private String format;
+        private String name;
+    }
 }
+

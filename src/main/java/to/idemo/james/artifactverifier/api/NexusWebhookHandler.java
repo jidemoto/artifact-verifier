@@ -5,7 +5,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 import to.idemo.james.artifactverifier.domain.NexusAsset;
 import to.idemo.james.artifactverifier.domain.NexusComponent;
-import to.idemo.james.artifactverifier.domain.NexusEventWrapper;
 import to.idemo.james.artifactverifier.service.VerifierService;
 
 import java.util.Map;
@@ -22,13 +21,13 @@ public class NexusWebhookHandler {
     }
 
     @PostMapping(headers = "X-Nexus-Webhook-Id=rm:repository:component")
-    public void handleComponentNotification(@RequestBody NexusEventWrapper<NexusComponent> component) {
+    public void handleComponentNotification(@RequestBody NexusComponent component) {
         logger.info("Received component: {}", component);
 
     }
 
     @PostMapping(headers = "X-Nexus-Webhook-Id=rm:repository:asset")
-    public void handleAssetNotification(@RequestBody NexusEventWrapper<NexusAsset> component) {
+    public void handleAssetNotification(@RequestBody NexusAsset component) {
         logger.info("Received Asset: {}", component);
     }
 
