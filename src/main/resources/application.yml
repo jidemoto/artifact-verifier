@@ -1,8 +1,19 @@
 validation:
   allowedEmailDomains: idemo.to
   allowedProviders: https://accounts.google.com
-  internalProjects: william-rowan-hamilton
+  internalProjects: william-rowan-hamilton,@idemoto/is-negative
+
+# Webhook URLs are sensitive and should be set from the environment variable
+#notifications:
+#  slack:
+#    webhookUrl: https://hooks.slack.com/services/AAAAAAA/BBBBBBBBB/CCCCCCCCCC
 
 springdoc:
   api-docs:
     path: /api-docs
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus

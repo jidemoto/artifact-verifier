@@ -28,8 +28,10 @@ sourceSets {
 }
 
 dependencies {
+	annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
 	//implementation 'org.springframework.boot:spring-boot-starter-jdbc'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	//implementation 'org.flywaydb:flyway-core'
 	implementation 'org.bouncycastle:bcprov-jdk15on:1.70'
 	compileOnly 'org.projectlombok:lombok'
@@ -39,6 +41,8 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testCompileOnly 'org.projectlombok:lombok'
 	testAnnotationProcessor 'org.projectlombok:lombok'
+
+	runtimeOnly 'io.micrometer:micrometer-registry-prometheus:1.9.5'
 }
 
 tasks.named('test') {

@@ -9,9 +9,11 @@ import org.springframework.web.bind.annotation.RestController;
 import to.idemo.james.artifactverifier.exception.ArtifactValidationFailureException;
 import to.idemo.james.artifactverifier.service.RekorService;
 import to.idemo.james.artifactverifier.service.VerifierService;
+import to.idemo.james.artifactverifier.service.nexus.NpmRepoClientImpl;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
@@ -20,16 +22,28 @@ public class ManualApi {
 
     private final VerifierService verifierService;
     private final RekorService rekorService;
+    private final NpmRepoClientImpl nexusRepoClient;
 
-    public ManualApi(VerifierService verifierService, RekorService rekorService) {
+    public ManualApi(VerifierService verifierService, RekorService rekorService,
+                     NpmRepoClientImpl repoClient) {
         this.verifierService = verifierService;
         this.rekorService = rekorService;
+        this.nexusRepoClient = repoClient;
     }
 
     @PostMapping
-    public ResponseEntity<VerificationResponse> verifyHash(@RequestParam String sha256) {
+    public ResponseEntity<VerificationResponse> verifyHash(@RequestParam(required = false) String sha256,
+                                                           @RequestParam(required = false) String assetId) {
+        String sha256Hash = sha256;
+        if(assetId != null && !assetId.isEmpty()) {
+            Optional<String> assetSha256Hash = nexusRepoClient.getAssetSha256Hash(assetId);
+            if (assetSha256Hash.isPresent()) {
+                sha256Hash = assetSha256Hash.get();
+            }
+        }
+
         try {
-            verifierService.verifyArtifact(sha256);
+            verifierService.verifyArtifact(sha256Hash);
             return new ResponseEntity<>(HttpStatus.ACCEPTED);
         } catch (ArtifactValidationFailureException e) {
             Map<String, Exception> exceptionMap = e.getExceptionMap();

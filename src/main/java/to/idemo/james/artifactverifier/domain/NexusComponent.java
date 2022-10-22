@@ -18,7 +18,7 @@ public class NexusComponent implements NexusEvent {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
-    static class Component {
+    public static class Component {
         private String id;
         private String componentId;
         private String format;

@@ -18,7 +18,7 @@ public class NexusAsset implements NexusEvent {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
-    static class Asset {
+    public static class Asset {
         private String id;
         private String assetId;
         private String format;

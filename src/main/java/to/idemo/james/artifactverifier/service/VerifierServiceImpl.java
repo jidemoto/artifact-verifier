@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import to.idemo.james.artifactverifier.VerificationUtilities;
+import to.idemo.james.artifactverifier.configuration.VerifierProperties;
 import to.idemo.james.artifactverifier.domain.Rekord;
 import to.idemo.james.artifactverifier.domain.RekordSignature;
 import to.idemo.james.artifactverifier.exception.ArtifactValidationFailureException;
@@ -39,11 +40,10 @@ public class VerifierServiceImpl implements VerifierService {
     private volatile Certificate intermediateCertificate;
 
     public VerifierServiceImpl(RekorService rekorService,
-                               @Value("${validation.allowedEmailDomains}") Collection<String> requiredEmailDomain,
-                               @Value("${validation.allowedProviders}") Collection<String> requiredOidcProvider) {
+                               VerifierProperties verifierProperties) {
         this.rekorService = rekorService;
-        this.requiredEmailDomain = new HashSet<>(requiredEmailDomain);
-        this.requiredOidcProvider = new HashSet<>(requiredOidcProvider);
+        this.requiredEmailDomain = verifierProperties.getAllowedEmailDomains();
+        this.requiredOidcProvider = verifierProperties.getAllowedProviders();
     }
 
     @Override
@@ -90,7 +90,7 @@ public class VerifierServiceImpl implements VerifierService {
         x509Certificate.verify(getIntermediateCertificate().getPublicKey());
 
         String san = VerificationUtilities.extractSan(x509Certificate);
-        String domain = san.substring(san.indexOf('@'));
+        String domain = san.substring(san.indexOf('@') + 1);
         if (!requiredEmailDomain.contains(domain)) {
             throw new EmailRuleFailureException("Email domain " + domain + " doesn't appear on the configured allowlist");
         }
