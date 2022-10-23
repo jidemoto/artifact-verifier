@@ -4,7 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-//@Component
+@Component
 public class ConsoleNotifierImpl implements Notifier {
     private static final Logger logger = LoggerFactory.getLogger(ConsoleNotifierImpl.class);
     @Override

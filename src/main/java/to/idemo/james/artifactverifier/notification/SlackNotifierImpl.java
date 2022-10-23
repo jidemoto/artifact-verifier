@@ -6,6 +6,8 @@ import lombok.Data;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.boot.context.properties.bind.BindResult;
+import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.context.annotation.*;
 import org.springframework.core.type.AnnotatedTypeMetadata;
 import org.springframework.http.*;
@@ -18,8 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Component
-@Primary
-//@Conditional(SlackNotifierImpl.SlackNotifierConditional.class)
+@Conditional(SlackNotifierImpl.SlackNotifierConditional.class)
 public class SlackNotifierImpl implements Notifier {
     private static final Logger logger = LoggerFactory.getLogger(SlackNotifierImpl.class);
 
@@ -77,15 +78,15 @@ public class SlackNotifierImpl implements Notifier {
     public static class SlackNotifierConditional implements Condition {
         @Override
         public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
-            ConfigurableListableBeanFactory beanFactory = context.getBeanFactory();
-            if(beanFactory != null) {
-                SlackNotificationProperties slackProperties = beanFactory.getBean(SlackNotificationProperties.class);
-                String webhookUrl = slackProperties.getWebhookUrl();
-                return webhookUrl != null && !webhookUrl.isEmpty();
-            }
-
-            logger.warn("Bean Factory wasn't online when condition was being checked");
-            return false;
+            // We don't have a great way to evaluate the conditional directly (we're relying on Spring's relaxed
+            // property resolution through ConfigurationProperties-annotated classes to support normalization of
+            // environment variables).  We'll bind props to
+            return Binder.get(context.getEnvironment())
+                    .bind("notifications.slack", SlackNotificationProperties.class)
+                    .map(props -> {
+                        String requiredProperty = props.getWebhookUrl();
+                        return requiredProperty != null && !requiredProperty.isEmpty();
+                    }).orElseGet(() -> false);
         }
     }
 }

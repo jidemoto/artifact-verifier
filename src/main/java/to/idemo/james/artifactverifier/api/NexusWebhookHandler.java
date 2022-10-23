@@ -13,6 +13,7 @@ import to.idemo.james.artifactverifier.domain.NexusAsset;
 import to.idemo.james.artifactverifier.domain.NexusComponent;
 import to.idemo.james.artifactverifier.exception.ArtifactValidationFailureException;
 import to.idemo.james.artifactverifier.notification.Notifier;
+import to.idemo.james.artifactverifier.service.NotifierService;
 import to.idemo.james.artifactverifier.service.VerifierService;
 import to.idemo.james.artifactverifier.service.nexus.NexusClient;
 
@@ -29,16 +30,16 @@ public class NexusWebhookHandler {
     private final VerifierService verifierService;
     private final NexusClient repoClient;
     private final Set<String> internalProjects;
-    private final Notifier notifier;
+    private final NotifierService notifierService;
 
     public NexusWebhookHandler(VerifierService verifierService,
                                NexusClient repoClient,
                                VerifierProperties verifierProperties,
-                               Notifier notifier) {
+                               NotifierService notifierService) {
         this.verifierService = verifierService;
         this.repoClient = repoClient;
         this.internalProjects = verifierProperties.getInternalProjects();
-        this.notifier = notifier;
+        this.notifierService = notifierService;
     }
 
     @Operation(
@@ -85,8 +86,8 @@ public class NexusWebhookHandler {
                     verifierService.verifyArtifact(sha256Hash.get());
                     logger.info("Asset {} passed internal strategy verification", dependencyName);
                 } catch (ArtifactValidationFailureException e) {
-                    logger.warn("Alerting on the injected notifier");
-                    notifier.alert(dependencyName, asset.getAsset().getFormat(), asset.getAsset().getAssetId(), asset.getInitiator(), e.getMessage());
+                    logger.warn("Alerting on notifiers");
+                    notifierService.alert(dependencyName, asset.getAsset().getFormat(), asset.getAsset().getAssetId(), asset.getInitiator(), e.getMessage());
                 }
             }
         } else {
