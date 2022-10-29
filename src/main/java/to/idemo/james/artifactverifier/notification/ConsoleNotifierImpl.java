@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 public class ConsoleNotifierImpl implements Notifier {
     private static final Logger logger = LoggerFactory.getLogger(ConsoleNotifierImpl.class);
     @Override
-    public void warn(String artifactName, String artifactLocation, String attributedUser, String reason) {
+    public void warn(String artifactName, String artifactType, String artifactLocation, String attributedUser, String reason) {
         logger.warn("{} uploaded by {} at {} failed validation because {}", artifactName, attributedUser, artifactLocation, reason);
     }
 

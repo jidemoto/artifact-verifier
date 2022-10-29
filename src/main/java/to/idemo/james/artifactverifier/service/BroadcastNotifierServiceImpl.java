@@ -18,9 +18,9 @@ public class BroadcastNotifierServiceImpl implements NotifierService {
     }
 
     @Override
-    public void warn(String artifactName, String artifactLocation, String attributedUser, String reason) {
+    public void warn(String artifactName, String artifactType, String artifactLocation, String attributedUser, String reason) {
         for (Notifier notifier : notifiers) {
-            notifier.warn(artifactName, artifactLocation, attributedUser, reason);
+            notifier.warn(artifactName, artifactType, artifactLocation, attributedUser, reason);
         }
     }
 

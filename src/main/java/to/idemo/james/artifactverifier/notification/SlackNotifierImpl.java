@@ -32,7 +32,7 @@ public class SlackNotifierImpl implements Notifier {
     }
 
     @Override
-    public void warn(String artifactName, String artifactLocation, String attributedUser, String reason) {
+    public void warn(String artifactName, String artifactType, String artifactLocation, String attributedUser, String reason) {
         //No warnings right now.  No-op
     }
 
