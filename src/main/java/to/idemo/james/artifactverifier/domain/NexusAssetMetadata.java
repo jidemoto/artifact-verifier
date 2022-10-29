@@ -11,4 +11,5 @@ import lombok.NoArgsConstructor;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class NexusAssetMetadata {
     private String downloadUrl;
+    private String contentType;
 }

@@ -78,6 +78,10 @@ public class NpmRepoClientImpl implements NexusRepoClient {
         if(assetMetadata == null) {
             throw new NullPointerException("Retrieved asset metadata for " + assetId + " was null");
         }
+        if(assetMetadata.getContentType().equals("application/json")) {
+            //We're going to ignore the json file assets because they appear to be component metadata
+            return Optional.empty();
+        }
         String downloadUrl = assetMetadata.getDownloadUrl();
 
         try {
