@@ -1,6 +1,8 @@
 package to.idemo.james.artifactverifier.api;
 
 import io.micrometer.core.annotation.Timed;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -12,11 +14,12 @@ import to.idemo.james.artifactverifier.configuration.VerifierProperties;
 import to.idemo.james.artifactverifier.domain.NexusAsset;
 import to.idemo.james.artifactverifier.domain.NexusComponent;
 import to.idemo.james.artifactverifier.exception.ArtifactValidationFailureException;
-import to.idemo.james.artifactverifier.notification.Notifier;
 import to.idemo.james.artifactverifier.service.NotifierService;
 import to.idemo.james.artifactverifier.service.VerifierService;
 import to.idemo.james.artifactverifier.service.nexus.NexusClient;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -31,15 +34,21 @@ public class NexusWebhookHandler {
     private final NexusClient repoClient;
     private final Set<String> internalProjects;
     private final NotifierService notifierService;
+    private final Timer verificationSuccessTimer;
+    private final Timer verificationFailureTimer;
 
     public NexusWebhookHandler(VerifierService verifierService,
                                NexusClient repoClient,
                                VerifierProperties verifierProperties,
-                               NotifierService notifierService) {
+                               NotifierService notifierService,
+                               MeterRegistry registry) {
         this.verifierService = verifierService;
         this.repoClient = repoClient;
         this.internalProjects = verifierProperties.getInternalProjects();
         this.notifierService = notifierService;
+        this.verificationSuccessTimer = registry.timer("verification_time", "outcome", "success");
+        this.verificationFailureTimer = registry.timer("verification_time", "outcome", "failure");
+
     }
 
     @Operation(
@@ -74,6 +83,8 @@ public class NexusWebhookHandler {
             return;
         }
 
+        Instant eventTime = Instant.parse(asset.getTimestamp());
+
         String name = asset.getAsset().getName();
         String[] assetSegments = name.split("/");
         String dependencyName = name.startsWith("@")
@@ -85,9 +96,11 @@ public class NexusWebhookHandler {
                 try {
                     verifierService.verifyArtifact(sha256Hash.get());
                     logger.info("Asset {} passed internal strategy verification", dependencyName);
+                    verificationSuccessTimer.record(Duration.between(eventTime, Instant.now()));
                 } catch (ArtifactValidationFailureException e) {
                     logger.warn("Alerting on notifiers");
                     notifierService.alert(dependencyName, asset.getAsset().getFormat(), asset.getAsset().getAssetId(), asset.getInitiator(), e.getMessage());
+                    verificationFailureTimer.record(Duration.between(eventTime, Instant.now()));
                 }
             }
         } else {
