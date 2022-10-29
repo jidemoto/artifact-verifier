@@ -17,6 +17,7 @@ configurations {
 }
 
 repositories {
+	mavenLocal()
 	mavenCentral()
 }
 
@@ -37,6 +38,9 @@ dependencies {
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 	implementation 'org.springdoc:springdoc-openapi-ui:1.6.11'
+
+	// Don't have this artifact?  Take a look at the sister repo to this one https://github.com/jidemoto/artifact-verifier-api
+	implementation 'to.idemo:artifact-verifier-api:0.0.1'
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testCompileOnly 'org.projectlombok:lombok'
