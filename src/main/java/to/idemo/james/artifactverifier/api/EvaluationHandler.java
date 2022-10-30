@@ -2,7 +2,7 @@ package to.idemo.james.artifactverifier.api;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +12,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import to.idemo.james.artifactverifier.domain.NexusComponent;
+import to.idemo.james.artifactverifier.service.nexus.NexusProperties;
 import to.idemo.james.artifactverifier.util.RequestUtils;
 
 import java.net.URLEncoder;
@@ -22,8 +23,9 @@ import java.util.stream.Collectors;
 @Component
 @RestController
 @RequestMapping("/admin")
-public class AdminHandler {
-    private static final Logger logger = LoggerFactory.getLogger(AdminHandler.class);
+@Profile("evaluation")
+public class EvaluationHandler {
+    private static final Logger logger = LoggerFactory.getLogger(EvaluationHandler.class);
 
     private static final String REPO_NAME = "npm-proxy";
 
@@ -32,13 +34,11 @@ public class AdminHandler {
     private final String nexusUrl;
     private final RestTemplate restTemplate;
 
-    public AdminHandler(RestTemplate restTemplate,
-                             @Value("${NEXUS_USERNAME:jidemoto}") String username,
-                             @Value("${NEXUS_PASSWORD:jidemoto}") String password,
-                             @Value("${NEXUS_URL:http://nexus:8081}") String nexusUrl) {
-        this.username = username;
-        this.password = password;
-        this.nexusUrl = nexusUrl;
+    public EvaluationHandler(RestTemplate restTemplate,
+                             NexusProperties nexusProperties) {
+        this.username = nexusProperties.getUsername();
+        this.password = nexusProperties.getPassword();
+        this.nexusUrl = nexusProperties.getUrl();
         this.restTemplate = restTemplate;
     }
 
@@ -86,7 +86,7 @@ public class AdminHandler {
                 new HttpEntity<>(headers),
                 Object.class
         );
-        if(!response.getStatusCode().is2xxSuccessful()) {
+        if (!response.getStatusCode().is2xxSuccessful()) {
             logger.error("Failed to delete");
         }
     }
@@ -96,7 +96,7 @@ public class AdminHandler {
         headers.add("Authorization", RequestUtils.generateBasicAuthHeader(username, password));
         String currentToken = "";
         List<String> componentIds = new ArrayList<>();
-        while(currentToken != null) {
+        while (currentToken != null) {
             ResponseEntity<ListRepoResponse> response = restTemplate.exchange(
                     nexusUrl + "/service/rest/v1/components?repository={repo}&continuationToken={continuationToken}",
                     HttpMethod.GET,

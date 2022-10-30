@@ -1,13 +1,26 @@
-validation:
+# Verifier Service Properties
+verifier:
   allowedEmailDomains: idemo.to
   allowedProviders: https://accounts.google.com
   internalProjects: william-rowan-hamilton,@idemoto/is-negative
+
+# Rekor Client Properties
+rekor:
+  hostname: https://rekor.sigstore.dev
+
+# Nexus3 configuration (sensitive and/or required properties that should be set up externally)
+#nexus:
+#  username: verifier
+#  password: hunter2
+#  url: http://nexus3:8080
+
 
 # Webhook URLs are sensitive and should be set from the environment variable
 #notifications:
 #  slack:
 #    webhookUrl: https://hooks.slack.com/services/AAAAAAA/BBBBBBBBB/CCCCCCCCCC
 
+### Metrics and API documentation setup.  The below shouldn't need to be updated
 springdoc:
   api-docs:
     path: /api-docs

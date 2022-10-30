@@ -35,13 +35,10 @@ public class NpmRepoClientImpl implements NexusRepoClient {
     private final String nexusUrl;
     private final RestTemplate restTemplate;
 
-    public NpmRepoClientImpl(RestTemplate restTemplate,
-                             @Value("${NEXUS_USERNAME:jidemoto}") String username,
-                             @Value("${NEXUS_PASSWORD:jidemoto}") String password,
-                             @Value("${NEXUS_URL:http://nexus:8081}") String nexusUrl) {
-        this.username = username;
-        this.password = password;
-        this.nexusUrl = nexusUrl;
+    public NpmRepoClientImpl(RestTemplate restTemplate, NexusProperties nexusProperties) {
+        this.username = nexusProperties.getUsername();
+        this.password = nexusProperties.getPassword();
+        this.nexusUrl = nexusProperties.getUrl();
         this.restTemplate = restTemplate;
     }
 
@@ -69,16 +66,16 @@ public class NpmRepoClientImpl implements NexusRepoClient {
                 HttpMethod.GET,
                 new HttpEntity<>(headers),
                 NexusAssetMetadata.class);
-        if(!response.getStatusCode().is2xxSuccessful()) {
+        if (!response.getStatusCode().is2xxSuccessful()) {
             logger.error("Asset with ID {} couldn't be retrieved.  Reason: {}",
                     assetId, response.getStatusCode().getReasonPhrase());
         }
 
         NexusAssetMetadata assetMetadata = response.getBody();
-        if(assetMetadata == null) {
+        if (assetMetadata == null) {
             throw new NullPointerException("Retrieved asset metadata for " + assetId + " was null");
         }
-        if(assetMetadata.getContentType().equals("application/json")) {
+        if (assetMetadata.getContentType().equals("application/json")) {
             //We're going to ignore the json file assets because they appear to be component metadata
             return Optional.empty();
         }
