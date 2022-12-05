@@ -1,0 +1,44 @@
+services:
+  nexus:
+    image: sonatype/nexus3:3.41.1
+    ports:
+      - "8081:8081"
+    volumes:
+      - "nexus-data:/nexus-data"
+  verifier:
+    image: artifact-verifier-custom:0.0.1
+    ports:
+      - "8080:8080"
+    environment:
+      NEXUS_URL: http://nexus:8081
+      NEXUS_USERNAME: verifier
+      NEXUS_PASSWORD: ${NEXUS_PASSWORD}
+      VERIFIER_ALLOWED_EMAIL_DOMAINS: idemo.to
+      VERIFIER_ALLOWED_PROVIDERS: https://accounts.google.com
+      VERIFIER_INTERNAL_PROJECTS: william-rowan-hamilton,@idemoto/is-negative
+      NOTIFICATIONS_SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL}
+      SPRING_PROFILES_ACTIVE: evaluation
+  grafana:
+    image: grafana/grafana-oss
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana
+  prometheus:
+    image: prom/prometheus
+    ports: 
+      - "9090:9090"
+    volumes:
+      - type: bind
+        source: compose/prometheus.yml
+        target: /etc/prometheus/prometheus.yml
+      - type: mount
+        source: prometheus-data
+        target: /prometheus
+
+volumes:
+  nexus-data:
+  grafana-storage:
+    external: true
+  prometheus-data:
+    external: true
