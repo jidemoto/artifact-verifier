@@ -35,3 +35,7 @@ out/
 
 ### VS Code ###
 .vscode/
+
+
+### .env file to prevent credentials from accidentally leaking ###
+.env
