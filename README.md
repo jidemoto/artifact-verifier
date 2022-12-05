@@ -71,5 +71,57 @@ $ curl -XPOST -H "X-Nexus-Webhook-Id: rm:repository:whatever" -H "Content-Type: 
       }
    }
 }'
+```
 
+## Evaluation
+
+### Start Docker Compose
+
+`NEXUS_PASSWORD` and `SLACK_WEBHOOK_URL` are set through [variable substitution](https://docs.docker.com/compose/compose-file/compose-file-v3/#variable-substitution).
+Create and modify a `.env` file to set those properties (former is required; latter is optional).
+
+Bring the testing rig up using the command `docker compose up`.
+
+The following services will be online:
+- [Artifact Verifier](http://localhost:8080)
+- [Nexus Repository 3](http://localhost:8081)
+- [Grafana](http://localhost:3000)
+
+If this is the first time running, see the notes below about setting up nexus3's data volume.  You'll need the 
+[backup.tar.gz file](https://github.com/jidemoto/artifact-verifier/releases/download/v0.0.1/backup.tar.gz) containing 
+the volume data to perform the restore operation.
+
+### Evaluating Behavior
+
+See the [dependency-confusion-poc repo](https://github.com/jidemoto/dependency-confusion-poc) for more information on 
+how to trigger the Proof-of-Concept dependency confusion attack.  Verifier should pick up the problematic dependency if 
+everything is configured properly.
+
+### Running the evaluation script
+
+Set the user credentials on the environment through the following command:
+```shell
+export credentials=verifier:hunter2
+```
+
+Then you can run the eval script from within the `evaluation` folder
+```shell
+bash upload-test-artifact.sh
+```
+
+It will run for 5 minutes and you'll be able to inspect the logs of the verifier.  I recommend not enabling the slack 
+notifier while it's running so your integration doesn't get shut down.
+
+## Technical Notes
+
+### Docker backup and restore
+
+The following command can be run to backup the nexus volume.  We'll start up an ubuntu image and use the same volumes as our docker-compose container 
+```shell
+docker run --rm --volumes-from artifact-verifier_nexus_1 -v $(pwd):/backup ubuntu tar zcvf /backup/backup.tar.gz /nexus-data
+```
+
+Then we can restore with the following command after starting a new container:
+```shell
+docker run --rm --volumes-from artifact-verifier_nexus_1 -v $(pwd):/backup ubuntu bash -c "cd /nexus-data && rm -rf * && tar zxvf /backup/backup.tar.gz --strip 1"
 ```

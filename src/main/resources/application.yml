@@ -1,3 +1,11 @@
+#######
+# Configuration properties to customize Artifact Verifier
+# This project leverages the Spring @ConfigurationProperties annotation, so properties the below can be
+# overridden via environment variables using relaxed binding.
+# Example: rekor.hostname -> REKOR_HOSTNAME
+# For more information, see https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features.external-config.typesafe-configuration-properties.relaxed-binding
+#######
+
 # Verifier Service Properties
 verifier:
   allowedEmailDomains: idemo.to
@@ -19,6 +27,9 @@ rekor:
 #notifications:
 #  slack:
 #    webhookUrl: https://hooks.slack.com/services/AAAAAAA/BBBBBBBBB/CCCCCCCCCC
+
+
+
 
 ### Metrics and API documentation setup.  The below shouldn't need to be updated
 springdoc:
