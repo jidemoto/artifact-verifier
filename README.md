@@ -18,6 +18,24 @@ $ docker build . -t artifact-verifier:0.0.1
 $ docker run -p 8080:8080 --rm -t artifact-verifier:0.0.1
 ```
 
+## Configuration
+
+The available configuration parameters are documented in [application.yml](https://github.com/jidemoto/artifact-verifier/blob/main/src/main/resources/application.yml).
+
+| Property                       | Description                                                        |
+|--------------------------------|--------------------------------------------------------------------|
+| verifier.allowedEmailDomains   | The email domain to allow on signatures                            |
+| verifier.allowedProviders      | The OIDC IdP that should be allowed on signatures                  |
+| verifier.internalProjects      | The artifact names from the internal repo that should be protected |
+| rekor.hostname                 | Rekor hostname to use.  Defaults to the public instance            |
+| nexus.username                 | Username of Nexus service account                                  |
+| nexus.password                 | Password of Nexus service account                                  |
+| nexus.url                      | URL to the Nexus instance                                          |
+| notifications.slack.webhookUrl | (Optional) Slack Webhook URL                                       |
+
+Properties can be set using Spring [relaxed binding](https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features.external-config.typesafe-configuration-properties.relaxed-binding).
+This means that the property `rekor.hostname` can be set with the environment variable `REKOR_HOSTNAME`
+
 ### Testing The Application
 
 Until the webhook endpoints are wired up to the verifier, the endpoints can be tested with the following commands
@@ -116,12 +134,14 @@ notifier while it's running so your integration doesn't get shut down.
 
 ### Docker backup and restore
 
-The following command can be run to backup the nexus volume.  We'll start up an ubuntu image and use the same volumes as our docker-compose container 
+The following command can be run to backup the nexus volume.  We'll start up an ubuntu image and use the same volumes as
+our container nexus container to perform the backup operation (tar is not available on the nexus image) 
 ```shell
 docker run --rm --volumes-from artifact-verifier_nexus_1 -v $(pwd):/backup ubuntu tar zcvf /backup/backup.tar.gz /nexus-data
 ```
 
-Then we can restore with the following command after starting a new container:
+Then we can restore with the following command after starting a new container.  This is a destructive operation and 
+meant to replace the contents currently in the volume.
 ```shell
 docker run --rm --volumes-from artifact-verifier_nexus_1 -v $(pwd):/backup ubuntu bash -c "cd /nexus-data && rm -rf * && tar zxvf /backup/backup.tar.gz --strip 1"
 ```
